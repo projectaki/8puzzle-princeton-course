@@ -1,13 +1,17 @@
 import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.Stack;
 
 import java.util.Arrays;
-import java.util.Iterator;
+
 
 public class Board {
 
     private final int[][] board;
     private final int N;
     private final int size;
+    private final int blankI;
+    private final int blankJ;
+
 
     // create a board from an n-by-n array of tiles,
     // where tiles[row][col] = tile at (row, col)
@@ -15,21 +19,34 @@ public class Board {
         N = tiles.length;
         size = N * N;
         board = new int[N][N];
+
+        int tempI = 0;
+        int tempJ = 0;
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 board[i][j] = tiles[i][j];
+                if (tiles[i][j] == 0) {
+                    tempI = i;
+                    tempJ = j;
+                }
             }
         }
+        blankI = tempI;
+        blankJ = tempJ;
+
     }
 
     // string representation of this board
     public String toString() {
-        String tempString = N + "\n";
+        StringBuilder s = new StringBuilder();
+        s.append(N).append("\n");
         for (int i = 0; i < N; i++) {
-            tempString += String.join(tempString, Arrays.toString(board[i]) + "\n");
+            for (int j = 0; j < N; j++) {
+                s.append(String.format("%2d ", board[i][j]));
+            }
+            s.append("\n");
         }
-
-        return tempString;
+        return s.toString();
     }
 
     // board dimension n
@@ -38,31 +55,29 @@ public class Board {
     }
 
     private int goalTableConvert(int i, int j) {
-        if ((i + 1) * (j + 1) == (size)) {
-            return 0;
-        } else return (i * N) + j + 1;
+        return (i * N) + j + 1;
     }
 
     private int IGoal(int numb) {
-        if (numb == 0) {
-            return N - 1;
-        } else {
+
+        if (numb != 0) {
             int temp = numb / N;
             if (numb % N > 0) {
                 return temp;
             } else return temp - 1;
-        }
+        } else return -1;
+
 
     }
 
     private int JGoal(int numb) {
-        if (numb == 0) {
-            return N - 1;
-        } else {
+
+        if (numb != 0) {
             if (numb % N > 0) {
                 return (numb % N) - 1;
             } else return N - 1;
-        }
+        } else return -1;
+
 
     }
 
@@ -73,9 +88,12 @@ public class Board {
             for (int j = 0; j < N; j++) {
                 // System.out.println("board i,j " + i + " " + j + " " + board[i][j]);
                 // System.out.println("goal i,j " + goalTableConvert(i, j));
-                if (board[i][j] != goalTableConvert(i, j)) {
-                    counter++;
+                if (board[i][j] != 0) {
+                    if (board[i][j] != goalTableConvert(i, j)) {
+                        counter++;
+                    }
                 }
+
             }
         }
         return counter;
@@ -86,8 +104,9 @@ public class Board {
         int sum = 0;
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-
-                sum += Math.abs((i - IGoal(board[i][j])) + (j - JGoal(board[i][j])));
+                if (board[i][j] != 0) {
+                    sum += Math.abs((i - IGoal(board[i][j]))) + Math.abs(j - JGoal(board[i][j]));
+                }
             }
         }
         return sum;
@@ -95,21 +114,70 @@ public class Board {
 
     // is this board the goal board?
     public boolean isGoal() {
-        return false;
+        return hamming() == 0;
     }
 
     // does this board equal y?
     public boolean equals(Object y) {
-        return false;
+        if (y == this) return true;
+        if (y == null) return false;
+        if (y.getClass() != this.getClass()) return false;
+        Board that = (Board) y;
+        return (this.N == that.N) && (Arrays.deepEquals(this.board, that.board))
+                && (this.size == that.size);
+    }
+
+    private boolean validateNeighbor(int i, int j) {
+        return i >= 0 && j >= 0 && i <= N - 1 && j <= N - 1;
     }
 
     // all neighboring boards
     public Iterable<Board> neighbors() {
-        return new Iterable<Board>() {
-            public Iterator<Board> iterator() {
-                return null;
-            }
-        };
+        Stack<Board> stackOfBoards = new Stack<>();
+        Board b = new Board(this.board);
+
+        //top
+        //System.out.println("topBeforeVal: " + (b.blankI - 1) + "," + b.blankJ);
+        if (validateNeighbor(b.blankI - 1, b.blankJ)) {
+            Board board1 = new Board(this.board);
+            //System.out.println("topVal: " + board1);
+            int tempHolder = board1.board[b.blankI - 1][b.blankJ];
+            board1.board[b.blankI - 1][b.blankJ] = 0;
+            board1.board[b.blankI][b.blankJ] = tempHolder;
+            stackOfBoards.push(board1);
+        }
+        //right
+        //System.out.println("rightBeforeVal: " + (b.blankI) + "," + (b.blankJ + 1));
+        if (validateNeighbor(b.blankI, b.blankJ + 1)) {
+            Board board2 = new Board(this.board);
+            // System.out.println("rightVal: " + board2);
+            int tempHolder = board2.board[b.blankI][b.blankJ + 1];
+            board2.board[b.blankI][b.blankJ + 1] = 0;
+            board2.board[b.blankI][b.blankJ] = tempHolder;
+            stackOfBoards.push(board2);
+        }
+        //bottom
+        //System.out.println("botBeforeVal: " + (b.blankI + 1) + "," + b.blankJ);
+        if (validateNeighbor(b.blankI + 1, b.blankJ)) {
+            Board board3 = new Board(this.board);
+            //System.out.println("botVal: " + board3);
+            int tempHolder = board3.board[b.blankI + 1][b.blankJ];
+            board3.board[b.blankI + 1][b.blankJ] = 0;
+            board3.board[b.blankI][b.blankJ] = tempHolder;
+            stackOfBoards.push(board3);
+        }
+        //left
+        //System.out.println("leftBeforeVal: " + (b.blankI) + "," + (b.blankJ - 1));
+        if (validateNeighbor(b.blankI, b.blankJ - 1)) {
+            Board board4 = new Board(this.board);
+            //System.out.println("leftVal: " + board4);
+            int tempHolder = board4.board[b.blankI][b.blankJ - 1];
+            board4.board[b.blankI][b.blankJ - 1] = 0;
+            board4.board[b.blankI][b.blankJ] = tempHolder;
+            stackOfBoards.push(board4);
+        }
+
+        return stackOfBoards;
     }
 
     // a board that is obtained by exchanging any pair of tiles
@@ -132,10 +200,15 @@ public class Board {
         Board testBoard = new Board(tiles);
         System.out.println(testBoard.toString());
         // System.out.println(testBoard.hamming());
-        System.out.println("MANHATTAN " + testBoard.manhattan());
-        // System.out.println("IGOAL " + testBoard.IGoal(0));
-        // System.out.println("JGOAL " + testBoard.JGoal(0));
-
+        Iterable<Board> minSn = testBoard.neighbors();
+        //System.out.println("NEIGHBOURS " + minSn);
+        for (Board b : minSn) {
+            // b = new Board(b.board);
+            //System.out.println("board " + b);
+            //System.out.println("Neighbour of neighbour " + b.neighbors());
+        }
+        //Iterable<Board> stack = testBoard.neighbors();
+        //System.out.println(stack);
 
     }
 
