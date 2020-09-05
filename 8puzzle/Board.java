@@ -9,6 +9,7 @@ public class Board {
     private final int[][] board;
     private final int N;
     private final int size;
+    //THe position of 0 tile
     private final int blankI;
     private final int blankJ;
 
@@ -54,10 +55,12 @@ public class Board {
         return N;
     }
 
+    // Given i, and j returns the value that should be standing at i, and j
     private int goalTableConvert(int i, int j) {
         return (i * N) + j + 1;
     }
 
+    // Given a number, returns the i where the number has to be
     private int IGoal(int numb) {
 
         if (numb != 0) {
@@ -70,6 +73,7 @@ public class Board {
 
     }
 
+    // Given a number, returns the j where the number has to be
     private int JGoal(int numb) {
 
         if (numb != 0) {
@@ -127,6 +131,7 @@ public class Board {
                 && (this.size == that.size);
     }
 
+    // Given i, and j validate if those are within the arrays bounds
     private boolean validateNeighbor(int i, int j) {
         return i >= 0 && j >= 0 && i <= N - 1 && j <= N - 1;
     }
@@ -134,10 +139,11 @@ public class Board {
     // all neighboring boards
     public Iterable<Board> neighbors() {
         Stack<Board> stackOfBoards = new Stack<>();
+        //new instance of a board (crucial for neighbour of neighbour)
         Board b = new Board(this.board);
 
         //top
-        //System.out.println("topBeforeVal: " + (b.blankI - 1) + "," + b.blankJ);
+        //If it has a top neighbour then add neighbour to stack
         if (validateNeighbor(b.blankI - 1, b.blankJ)) {
             Board board1 = new Board(this.board);
             //System.out.println("topVal: " + board1);
@@ -182,8 +188,25 @@ public class Board {
 
     // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
-        int[][] tiles = new int[0][0];
-        return new Board(tiles);
+        Board b = new Board(board);
+        int iThatsNot0 = 0;
+        int jThatsNot0 = 0;
+        int secondI = 0;
+        int secondJ = 0;
+
+        for (int i = 0; i < N; i++) {
+            if (i != blankI) iThatsNot0 = i;
+            if (i != blankJ) jThatsNot0 = i;
+        }
+        for (int i = 0; i < N; i++) {
+            if (i != blankI && i != iThatsNot0) secondI = i;
+            if (i != blankJ && i != jThatsNot0) secondJ = i;
+        }
+        int tempVal = b.board[iThatsNot0][jThatsNot0];
+        b.board[iThatsNot0][jThatsNot0] = b.board[secondI][secondJ];
+        b.board[secondI][secondJ] = tempVal;
+
+        return b;
     }
 
     // unit testing (not graded)
@@ -199,16 +222,8 @@ public class Board {
         }
         Board testBoard = new Board(tiles);
         System.out.println(testBoard.toString());
-        // System.out.println(testBoard.hamming());
-        Iterable<Board> minSn = testBoard.neighbors();
-        //System.out.println("NEIGHBOURS " + minSn);
-        for (Board b : minSn) {
-            // b = new Board(b.board);
-            //System.out.println("board " + b);
-            //System.out.println("Neighbour of neighbour " + b.neighbors());
-        }
-        //Iterable<Board> stack = testBoard.neighbors();
-        //System.out.println(stack);
+        System.out.println();
+        //System.out.println("MANHATTNA " + testBoard.manhattan());
 
     }
 

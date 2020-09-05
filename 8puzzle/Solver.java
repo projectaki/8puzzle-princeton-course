@@ -4,10 +4,10 @@ import edu.princeton.cs.algs4.Stack;
 import edu.princeton.cs.algs4.StdOut;
 
 public class Solver {
-    private int moves;
     private final Stack<Board> sq;
-    private int tempCrasher = 0;
+    private boolean solvable;
 
+    // SearchNode for the Priority Queue
     private static class SearchNode implements Comparable<SearchNode> {
         private final Board board;
         private final int moves;
@@ -19,10 +19,11 @@ public class Solver {
             this.board = b;
             this.moves = moves;
             this.prev = prev;
+            // precompute manhattan for caching
             this.manhattan = b.manhattan();
         }
 
-
+        // PRIORITY FUNCTION which takes manhattan and moves to get to the tile
         public int compareTo(SearchNode that) {
             return Integer.compare(this.manhattan + this.moves, that.manhattan + that.moves);
         }
@@ -31,40 +32,92 @@ public class Solver {
     // find a solution to the initial board (using the A* algorithm)
     public Solver(Board initial) {
         if (initial == null) throw new IllegalArgumentException();
+        solvable = true;
+        int moves = 0;
         sq = new Stack<>();
-        MinPQ<SearchNode> PQ = new MinPQ<>();
+        Stack<Board> sqTwin = new Stack<>();
 
-        SearchNode sn = new SearchNode(initial, sq.size(), null);
+        // Initialize Priority Queues
+        // 2 Instances of Priority queue, to check the solvability
+        MinPQ<SearchNode> PQ = new MinPQ<>();
+        MinPQ<SearchNode> PQTwin = new MinPQ<>();
+
+        // Create initial Node
+        SearchNode sn = new SearchNode(initial, moves, null);
+        SearchNode snTwin = new SearchNode(initial.twin(), moves, null);
+        //System.out.println("INITIAL BAORD: " + initial);
+        //System.out.println("TWIN BAORD: " + initial.twin());
+
+
         PQ.insert(sn);
+        PQTwin.insert(snTwin);
 
         SearchNode tempSn = PQ.delMin();
+        SearchNode tempSnTwin = PQTwin.delMin();
         // System.out.println("before while");
 
-        while (!tempSn.board.isGoal()) {
-            // System.out.println("ENtered while");
+        // RUN while either initial or the twin is solved, depending on which is solved we know if solvable or not
+        while (!tempSn.board.isGoal() && !tempSnTwin.board.isGoal()) {
 
+            // Neighbours of board
             Iterable<Board> minSn = tempSn.board.neighbors();
+            Iterable<Board> minSnTwin = tempSnTwin.board.neighbors();
 
             for (Board b : minSn) {
-                // System.out.println("Entered for");
-                if (!b.equals(tempSn.board)) {
-                    SearchNode temp = new SearchNode(b, sq.size(), tempSn);
+                // First element corner case check
+                if (tempSn.prev != null) {
+                    // Optimiztion for getting rid of repeated boards added
+                    if (!b.equals(tempSn.prev.board)) {
+                        // moves are the previous nodes moves + 1
+                        SearchNode temp = new SearchNode(b, tempSn.moves + 1, tempSn);
+                        PQ.insert(temp);
 
-
+                    }
+                } else {
+                    SearchNode temp = new SearchNode(b, tempSn.moves + 1, tempSn);
                     PQ.insert(temp);
-                    // if (b.isGoal()) break;
                 }
+
             }
             tempSn = PQ.delMin();
-            tempCrasher++;
-            System.out.println(tempCrasher);
-            if (tempCrasher > 100) break;
+
+
+            for (Board bTwin : minSnTwin) {
+                if (tempSnTwin.prev != null) {
+                    if (!bTwin.equals(tempSnTwin.prev.board)) {
+                        SearchNode tempTwin = new SearchNode(bTwin, tempSnTwin.moves + 1, tempSnTwin);
+                        PQTwin.insert(tempTwin);
+
+                    }
+                } else {
+                    SearchNode tempTwin = new SearchNode(bTwin, tempSnTwin.moves + 1, tempSnTwin);
+                    PQTwin.insert(tempTwin);
+                }
+
+            }
+            tempSnTwin = PQTwin.delMin();
+
+            // Checking if twin or initial was solved
+            if (tempSn.board.isGoal()) {
+                this.solvable = true;
+            }
+            if (tempSnTwin.board.isGoal()) {
+                this.solvable = false;
+            }
         }
 
+        // Traverse through the nodes starting from the completed board until the "prev" is null
+        // Push the nodes` board on the stack which then iterated through will be reversed for the solution
         sq.push(tempSn.board);
         while (tempSn.prev != null) {
             sq.push(tempSn.prev.board);
             tempSn = tempSn.prev;
+        }
+
+        sqTwin.push(tempSnTwin.board);
+        while (tempSnTwin.prev != null) {
+            sqTwin.push(tempSnTwin.prev.board);
+            tempSnTwin = tempSnTwin.prev;
         }
 
 
@@ -72,7 +125,7 @@ public class Solver {
 
     // is the initial board solvable? (see below)
     public boolean isSolvable() {
-        return true;
+        return solvable;
     }
 
     // min number of moves to solve initial board; -1 if unsolvable
